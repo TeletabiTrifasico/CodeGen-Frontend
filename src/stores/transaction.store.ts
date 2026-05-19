@@ -34,12 +34,32 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   }
 
-  async function transfer(fromIban: string, toIban: string, amount: number, description: string) {
-    const { data } = await api.post('/api/transactions/transfer', {
-      fromIban, toIban, amount, description
-    })
-    return data as Transaction
+  async function fetchTransactionsByAccount(iban: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const { data } = await api.get(`/api/transactions/account/${iban}`)
+      return data as Transaction[]
+    } catch (e: any) {
+      error.value = e.response?.data?.error ?? 'Failed to load account transactions'
+      return []
+    } finally {
+      loading.value = false
+    }
   }
 
-  return { transactions, loading, error, fetchMyTransactions, fetchAllTransactions, transfer }
+
+  async function transfer(fromIban: string, toIban: string, amount: number, description: string) {
+    try{
+      const { data } = await api.post('/api/transactions/transfer', {
+        fromIban, toIban, amount, description
+      })
+      return data as Transaction
+    } catch (e: any) {
+      error.value = e.response?.data?.error ?? 'Failed to transfer'
+      throw e
+    }
+  }
+
+  return { transactions, loading, error, fetchMyTransactions, fetchAllTransactions, transfer, fetchTransactionsByAccount }
 })

@@ -48,6 +48,11 @@ const router = createRouter({
   ]
 })
 
+// Global navigation guard to check authentication and authorization
+// to = > the page I want to go
+// from = > the page I am coming from
+// next = > redirect to the page I want to go or stay on the current page
+
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
 
