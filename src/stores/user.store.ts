@@ -65,7 +65,7 @@ export const useUserStore = defineStore('user', () => {
 
   async function approveUser(userId: number) {
     try {
-      const { data } = await api.put(`/api/users/${userId}/approve`)
+      const { data } = await api.put(`/api/users/${userId}`)
       const idx = pendingUsers.value.findIndex(u => u.id === userId)
       if (idx !== -1) pendingUsers.value.splice(idx, 1)
       const allIdx = users.value.findIndex(u => u.id === userId)

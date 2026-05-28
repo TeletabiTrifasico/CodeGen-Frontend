@@ -51,3 +51,12 @@ export interface AtmResponse {
   newBalance: number
   message: string
 }
+
+export type UpdateAccountPayload = {
+  absoluteLimit?: number
+  dayLimit?: number
+  transactionLimit?: number
+  active?: boolean
+}
+
+
