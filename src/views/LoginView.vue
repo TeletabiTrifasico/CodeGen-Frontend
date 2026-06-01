@@ -5,6 +5,9 @@
         <h3 class="card-title mb-4 text-center">Login</h3>
 
         <div v-if="error" class="alert alert-danger">{{ error }}</div>
+        <div v-if="success" class="alert alert-success">
+          {{ success }}
+        </div>
 
         <form @submit.prevent="handleLogin">
           <div class="mb-3">
@@ -40,20 +43,26 @@ const router = useRouter()
 const form = ref({ username: '', password: '' })
 const loading = ref(false)
 const error = ref<string | null>(null)
+const success = ref<string | null>(null)
 
 async function handleLogin() {
   loading.value = true
   error.value = null
+  success.value = null
   try {
     await authStore.login(form.value.username, form.value.password)
-    if (authStore.isEmployee) {
-      router.push('/employee')
-    } else if (authStore.isApproved) {
-      router.push('/dashboard')
-    } else {
-      router.push('/welcome')
-    }
-  } catch (e: any) {
+    success.value = `Welcome back, ${form.value.username}!`
+
+    setTimeout(() => {
+      if (authStore.isEmployee) {
+        router.push('/employee')
+      } else if (authStore.isApproved) {
+        router.push('/dashboard')
+      } else {
+        router.push('/welcome')
+      }
+    }, 3000)
+  } catch (e: any){
     error.value = e.response?.data?.error ?? 'Login failed. Please check your credentials.'
   } finally {
     loading.value = false
