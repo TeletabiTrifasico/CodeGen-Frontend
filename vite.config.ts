@@ -4,14 +4,14 @@ import { fileURLToPath, URL } from 'node:url'
 
 // Set BASE_URL env var to your GitHub Pages repo path for production
 // e.g. BASE_URL=/banking-frontend/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [vue()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
-  base: process.env.BASE_URL ?? '/',
+  base: mode === 'production' ? (process.env.BASE_URL ?? '/CodeGen-Frontend/') : '/',
   server: {
     port: 5173,
     proxy: {
@@ -21,4 +21,4 @@ export default defineConfig({
       }
     }
   }
-})
+}))

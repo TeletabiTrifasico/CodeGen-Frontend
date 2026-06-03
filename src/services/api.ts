@@ -1,7 +1,11 @@
 import axios from 'axios'
 
+const defaultApiUrl = import.meta.env.PROD
+  ? 'https://codegen-backend-z9nu.onrender.com'
+  : 'http://localhost:8080'
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_URL ?? defaultApiUrl,
   headers: { 'Content-Type': 'application/json' }
 })
 
@@ -19,7 +23,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      window.location.href = '/login'
+      window.location.href = `${import.meta.env.BASE_URL}login`
     }
     return Promise.reject(error)
   }
