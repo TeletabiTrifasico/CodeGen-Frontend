@@ -308,11 +308,6 @@
               <input v-model.number="transferAmount" type="number" min="0.01" step="0.01" class="form-control" required />
             </div>
 
-            <div class="col-md-8">
-              <label class="form-label">Description</label>
-              <input v-model="transferDescription" type="text" class="form-control" placeholder="Transfer description" />
-            </div>
-
             <div class="col-12">
               <button type="submit" class="btn btn-primary" :disabled="transferLoading">
                 <span v-if="transferLoading" class="spinner-border spinner-border-sm me-1"></span>
@@ -388,7 +383,6 @@ const checkingAccounts = computed(() =>
 const selectedFromIban = ref('')
 const selectedToIban = ref('')
 const transferAmount = ref(0)
-const transferDescription = ref('')
 const transferLoading = ref(false)
 const transferError = ref<string | null>(null)
 const transferSuccess = ref<string | null>(null)
@@ -461,8 +455,7 @@ async function handleEmployeeTransfer() {
     const tx = await txStore.transfer(
         selectedFromIban.value,
         selectedToIban.value,
-        transferAmount.value,
-        transferDescription.value
+        transferAmount.value
     )
 
     transferSuccess.value = `Transfer successful! Reference: ${tx.reference}`
@@ -470,7 +463,6 @@ async function handleEmployeeTransfer() {
     selectedFromIban.value = ''
     selectedToIban.value = ''
     transferAmount.value = 0
-    transferDescription.value = ''
 
     await Promise.all([accountStore.fetchAllAccounts(), txStore.fetchAllTransactions()])
   } catch (e: any) {

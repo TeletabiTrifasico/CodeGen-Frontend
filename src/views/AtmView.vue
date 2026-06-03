@@ -77,8 +77,7 @@ async function handleDeposit() {
   try {
     const { data } = await api.post('/api/atm/deposit', {
       iban: selectedIban.value,
-      amount: depositAmount.value,
-      description: 'ATM Deposit'
+      amount: depositAmount.value
     })
     result.value = `Deposit successful! Ref: ${data.reference} — New balance: €${data.newBalance.toFixed(2)}`
     resultSuccess.value = true
@@ -99,8 +98,7 @@ async function handleWithdraw() {
   try {
     const { data } = await api.post('/api/atm/withdraw', {
       iban: selectedIban.value,
-      amount: withdrawAmount.value,
-      description: 'ATM Withdrawal'
+      amount: withdrawAmount.value
     })
     result.value = `Withdrawal successful! Ref: ${data.reference} — New balance: €${data.newBalance.toFixed(2)}`
     resultSuccess.value = true
