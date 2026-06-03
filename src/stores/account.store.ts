@@ -1,6 +1,6 @@
 import {defineStore} from 'pinia'
 import {ref} from 'vue'
-import type {Account, AccountType, UpdateAccountPayload} from '@/models'
+import type {Account, AccountType, IbanSearchResult, UpdateAccountPayload} from '@/models'
 import api from '@/services/api'
 
 export const useAccountStore = defineStore('account', () => {
@@ -85,7 +85,16 @@ export const useAccountStore = defineStore('account', () => {
       return updateAccount(iban, {active: false})
     }
 
-    return {accounts, loading, error,fetchAllAccounts, fetchMyAccounts, fetchAccountsByUser, createAccount, getAccountByIban,
-       closeAccount, updateAccount
+    async function searchByName(name: string) {
+      try {
+        const { data } = await api.get('/api/accounts/search', { params: { name } })
+        return data as IbanSearchResult[]
+      } catch {
+        return []
+      }
+    }
+
+    return {accounts, loading, error, fetchAllAccounts, fetchMyAccounts, fetchAccountsByUser,
+      createAccount, getAccountByIban, closeAccount, updateAccount, searchByName
     }
 })

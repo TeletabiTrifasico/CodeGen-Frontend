@@ -59,4 +59,10 @@ export type UpdateAccountPayload = {
   active?: boolean
 }
 
+export interface IbanSearchResult {
+  iban: string
+  ownerFullName: string
+  accountType: AccountType
+}
+
 

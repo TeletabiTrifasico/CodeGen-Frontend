@@ -14,8 +14,7 @@
       </div>
 
       <div v-for="account in accountStore.accounts" :key="account.id" class="col-md-4">
-        <div class="card h-100 shadow-sm" :class="{ 'border-primary': selectedAccount?.iban === account.iban }"
-             @click="selectAccount(account)" style="cursor: pointer;">
+        <div class="card h-100 shadow-sm">
           <div class="card-body">
             <div class="d-flex justify-content-between">
               <span class="badge" :class="account.accountType === 'CHECKING' ? 'bg-primary' : 'bg-success'">
@@ -25,26 +24,52 @@
             </div>
             <h3 class="mt-2 mb-0">€ {{ account.balance.toFixed(2) }}</h3>
             <small class="text-muted">Day limit: €{{ account.dayLimit }}</small>
+            <div class="mt-2 d-flex gap-2">
+              <button class="btn btn-sm btn-outline-primary" @click="openDetails(account)">Details</button>
+              <button class="btn btn-sm btn-outline-secondary" @click="selectForTransfer(account)">Transfer</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Transfer Section -->
-    <div v-if="selectedAccount" class="card shadow-sm mb-4">
+    <div class="card shadow-sm mb-4">
+      <div class="card-header"><h5 class="mb-0">Transfer Money</h5></div>
       <div class="card-body">
-        <h5>Transfer Money</h5>
         <div v-if="transferError" class="alert alert-danger">{{ transferError }}</div>
         <div v-if="transferSuccess" class="alert alert-success">Transfer successful! Ref: {{ transferSuccess }}</div>
+
         <form @submit.prevent="handleTransfer" class="row g-3">
+          <!-- Source account -->
           <div class="col-md-4">
-            <label class="form-label">From</label>
-            <input :value="selectedAccount.iban" class="form-control" readonly />
+            <label class="form-label">From Account</label>
+            <select v-model="transferForm.fromIban" class="form-select" required>
+              <option value="">-- Select source account --</option>
+              <option v-for="acc in accountStore.accounts" :key="acc.iban" :value="acc.iban">
+                {{ acc.iban }} ({{ acc.accountType }}) — €{{ acc.balance.toFixed(2) }}
+              </option>
+            </select>
           </div>
+
+          <!-- Destination: own account or external -->
           <div class="col-md-4">
-            <label class="form-label">To IBAN</label>
-            <input v-model="transferForm.toIban" class="form-control" placeholder="NL02BANK..." required />
+            <label class="form-label">To Account</label>
+            <div class="input-group">
+              <select v-if="toMode === 'own'" v-model="transferForm.toIban" class="form-select" required>
+                <option value="">-- Select your account --</option>
+                <option v-for="acc in otherOwnAccounts" :key="acc.iban" :value="acc.iban">
+                  {{ acc.iban }} ({{ acc.accountType }})
+                </option>
+              </select>
+              <input v-else v-model="transferForm.toIban" class="form-control" placeholder="NL02BANK..." required />
+            </div>
+            <div class="btn-group btn-group-sm mt-1 w-100">
+              <button type="button" class="btn" :class="toMode === 'external' ? 'btn-secondary' : 'btn-outline-secondary'" @click="toMode = 'external'; transferForm.toIban = ''">External IBAN</button>
+              <button type="button" class="btn" :class="toMode === 'own' ? 'btn-secondary' : 'btn-outline-secondary'" @click="toMode = 'own'; transferForm.toIban = ''">My Account</button>
+            </div>
           </div>
+
           <div class="col-md-2">
             <label class="form-label">Amount (€)</label>
             <input v-model.number="transferForm.amount" type="number" step="0.01" min="0.01" class="form-control" required />
@@ -63,7 +88,52 @@
       </div>
     </div>
 
-    <!-- Transactions Section -->
+    <!-- Find Customer IBAN Section -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header"><h5 class="mb-0">Find Customer IBAN</h5></div>
+      <div class="card-body">
+        <div class="row g-2 align-items-end mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Search by customer name</label>
+            <input v-model="ibanSearchName" class="form-control" placeholder="e.g. John Doe" @keyup.enter="handleIbanSearch" />
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-outline-primary" @click="handleIbanSearch" :disabled="ibanSearchLoading || !ibanSearchName.trim()">
+              <span v-if="ibanSearchLoading" class="spinner-border spinner-border-sm me-1"></span>
+              Search
+            </button>
+          </div>
+        </div>
+
+        <div v-if="ibanSearchResults.length > 0">
+          <table class="table table-sm table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>IBAN</th>
+                <th>Owner</th>
+                <th>Type</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="result in ibanSearchResults" :key="result.iban">
+                <td><code>{{ result.iban }}</code></td>
+                <td>{{ result.ownerFullName }}</td>
+                <td><span class="badge" :class="result.accountType === 'CHECKING' ? 'bg-primary' : 'bg-success'">{{ result.accountType }}</span></td>
+                <td>
+                  <button class="btn btn-sm btn-outline-secondary" @click="useIbanForTransfer(result.iban)">
+                    Use for transfer
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-else-if="ibanSearchDone" class="text-muted">No accounts found.</div>
+      </div>
+    </div>
+
+    <!-- Transaction History -->
     <div class="card shadow-sm">
       <div class="card-header d-flex justify-content-between">
         <h5 class="mb-0">Transaction History</h5>
@@ -129,56 +199,176 @@
         </div>
       </div>
     </div>
+
+    <!-- Account Details Modal -->
+    <div v-if="detailAccount" class="modal d-block" style="background: rgba(0,0,0,0.5);" @click.self="closeDetails">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Account Details</h5>
+            <button class="btn-close" @click="closeDetails"></button>
+          </div>
+          <div class="modal-body">
+            <!-- Account Info -->
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <div class="p-3 bg-light rounded">
+                  <div class="mb-2">
+                    <span class="badge fs-6" :class="detailAccount.accountType === 'CHECKING' ? 'bg-primary' : 'bg-success'">
+                      {{ detailAccount.accountType }}
+                    </span>
+                  </div>
+                  <table class="table table-sm table-borderless mb-0">
+                    <tbody>
+                      <tr><th>IBAN</th><td><code>{{ detailAccount.iban }}</code></td></tr>
+                      <tr><th>Balance</th><td class="fw-bold">€ {{ detailAccount.balance.toFixed(2) }}</td></tr>
+                      <tr><th>Status</th><td><span :class="detailAccount.active ? 'text-success' : 'text-danger'">{{ detailAccount.active ? 'Active' : 'Inactive' }}</span></td></tr>
+                      <tr><th>Opened</th><td>{{ detailAccount.createdAt ? formatDate(detailAccount.createdAt) : '—' }}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="p-3 bg-light rounded h-100">
+                  <h6 class="mb-3">Limits</h6>
+                  <table class="table table-sm table-borderless mb-0">
+                    <tbody>
+                      <tr><th>Daily Limit</th><td>€ {{ detailAccount.dayLimit.toFixed(2) }}</td></tr>
+                      <tr><th>Per Transaction</th><td>€ {{ detailAccount.transactionLimit.toFixed(2) }}</td></tr>
+                      <tr><th>Absolute Limit</th><td>€ {{ detailAccount.absoluteLimit.toFixed(2) }}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Account Transactions -->
+            <h6 class="mb-3">Transaction History</h6>
+            <div v-if="detailTxLoading" class="text-center py-3">
+              <div class="spinner-border text-primary"></div>
+            </div>
+            <div v-else-if="detailTransactions.length === 0" class="text-muted text-center py-3">
+              No transactions for this account.
+            </div>
+            <table v-else class="table table-sm table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Reference</th>
+                  <th>Type</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="tx in detailTransactions" :key="tx.id">
+                  <td><code>{{ tx.reference }}</code></td>
+                  <td><span class="badge" :class="txBadge(tx.type)">{{ tx.type }}</span></td>
+                  <td>{{ tx.sourceIban ?? '—' }}</td>
+                  <td>{{ tx.destinationIban ?? '—' }}</td>
+                  <td :class="txAmountClassForAccount(tx, detailAccount!.iban)">€ {{ tx.amount.toFixed(2) }}</td>
+                  <td>{{ formatDate(tx.timestamp) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" @click="closeDetails">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAccountStore } from '@/stores/account.store'
 import { useTransactionStore } from '@/stores/transaction.store'
-import type { Account, AccountType, TransactionType } from '@/models'
+import type { Account, AccountType, IbanSearchResult, Transaction, TransactionType } from '@/models'
+import api from '@/services/api'
 
 const authStore = useAuthStore()
 const accountStore = useAccountStore()
 const txStore = useTransactionStore()
 
-const selectedAccount = ref<Account | null>(null)
-const transferForm = ref({ toIban: '', amount: 0, description: '' })
+// Transfer form
+const toMode = ref<'external' | 'own'>('external')
+const transferForm = ref({ fromIban: '', toIban: '', amount: 0, description: '' })
 const transferLoading = ref(false)
 const transferError = ref<string | null>(null)
 const transferSuccess = ref<string | null>(null)
 
+const otherOwnAccounts = computed(() =>
+  accountStore.accounts.filter(a => a.iban !== transferForm.value.fromIban)
+)
+
+// Create account
 const showCreateAccount = ref(false)
 const newAccountType = ref<AccountType>('SAVINGS')
 const createLoading = ref(false)
 const createError = ref<string | null>(null)
+
+// Account details modal
+const detailAccount = ref<Account | null>(null)
+const detailTransactions = ref<Transaction[]>([])
+const detailTxLoading = ref(false)
+
+// IBAN search
+const ibanSearchName = ref('')
+const ibanSearchResults = ref<IbanSearchResult[]>([])
+const ibanSearchLoading = ref(false)
+const ibanSearchDone = ref(false)
 
 onMounted(async () => {
   await accountStore.fetchMyAccounts()
   await txStore.fetchMyTransactions()
 })
 
-function selectAccount(account: Account) {
-  selectedAccount.value = account
+function selectForTransfer(account: Account) {
+  transferForm.value.fromIban = account.iban
+  transferForm.value.toIban = ''
+  toMode.value = 'external'
   transferError.value = null
   transferSuccess.value = null
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+async function openDetails(account: Account) {
+  detailAccount.value = account
+  detailTransactions.value = []
+  detailTxLoading.value = true
+  try {
+    const { data } = await api.get(`/api/transactions/account/${account.iban}`)
+    detailTransactions.value = data
+  } catch {
+    detailTransactions.value = []
+  } finally {
+    detailTxLoading.value = false
+  }
+}
+
+function closeDetails() {
+  detailAccount.value = null
+  detailTransactions.value = []
 }
 
 async function handleTransfer() {
-  if (!selectedAccount.value) return
   transferLoading.value = true
   transferError.value = null
   transferSuccess.value = null
   try {
     const tx = await txStore.transfer(
-      selectedAccount.value.iban,
+      transferForm.value.fromIban,
       transferForm.value.toIban,
       transferForm.value.amount,
       transferForm.value.description
     )
     transferSuccess.value = tx.reference
-    transferForm.value = { toIban: '', amount: 0, description: '' }
+    transferForm.value = { fromIban: '', toIban: '', amount: 0, description: '' }
+    toMode.value = 'external'
     await accountStore.fetchMyAccounts()
     await txStore.fetchMyTransactions()
   } catch (e: any) {
@@ -201,6 +391,26 @@ async function handleCreateAccount() {
   }
 }
 
+async function handleIbanSearch() {
+  if (!ibanSearchName.value.trim()) return
+  ibanSearchLoading.value = true
+  ibanSearchDone.value = false
+  ibanSearchResults.value = []
+  try {
+    ibanSearchResults.value = await accountStore.searchByName(ibanSearchName.value.trim())
+  } finally {
+    ibanSearchLoading.value = false
+    ibanSearchDone.value = true
+  }
+}
+
+function useIbanForTransfer(iban: string) {
+  transferForm.value.toIban = iban
+  toMode.value = 'external'
+  transferError.value = null
+  transferSuccess.value = null
+}
+
 function txBadge(type: TransactionType) {
   return {
     'bg-info text-dark': type === 'TRANSFER',
@@ -209,12 +419,18 @@ function txBadge(type: TransactionType) {
   }
 }
 
-function txAmountClass(tx: any) {
+function txAmountClass(tx: Transaction) {
   if (tx.type === 'ATM_DEPOSIT') return 'text-success fw-bold'
   if (tx.type === 'ATM_WITHDRAWAL') return 'text-danger fw-bold'
   return tx.sourceIban && accountStore.accounts.some(a => a.iban === tx.sourceIban)
     ? 'text-danger fw-bold'
     : 'text-success fw-bold'
+}
+
+function txAmountClassForAccount(tx: Transaction, iban: string) {
+  if (tx.type === 'ATM_DEPOSIT') return 'text-success fw-bold'
+  if (tx.type === 'ATM_WITHDRAWAL') return 'text-danger fw-bold'
+  return tx.sourceIban === iban ? 'text-danger fw-bold' : 'text-success fw-bold'
 }
 
 function formatDate(ts: string) {
