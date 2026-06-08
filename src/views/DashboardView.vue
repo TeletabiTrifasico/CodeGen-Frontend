@@ -356,7 +356,7 @@ const ibanSearchDone = ref(false)
 
 onMounted(async () => {
   await accountStore.fetchMyAccounts()
-  await txStore.fetchMyTransactions()
+  await txStore.fetchTest()
 })
 
 function pickSourceAccount(account: Account) {
@@ -400,7 +400,7 @@ async function handleTransfer() {
     transferForm.value = { fromIban: '', toIban: '', amount: 0 }
     toMode.value = 'external'
     await accountStore.fetchMyAccounts()
-    await txStore.fetchMyTransactions()
+    await txStore.fetchTest()
   } catch (e: any) {
     transferError.value = e.response?.data?.error ?? 'Transfer failed'
   } finally {

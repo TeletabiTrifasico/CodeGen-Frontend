@@ -48,9 +48,39 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   }
 
+  async function fetchTransactions(iban?: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const params = iban ? { iban } : {}
+      const { data } = await api.get('/api/transactions/newGetApi', { params })
+      transactions.value = data
+      return data as Transaction[]
+    } catch (e: any) {
+      error.value = e.response?.data?.error ?? 'Failed to load transactions'
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchTest() {
+    loading.value = true
+    error.value = null
+    try {
+      const { data } = await api.get('/api/transactions/testAPI')
+      return data as Transaction[]
+    } catch (e: any) {
+      error.value = e.response?.data?.error ?? 'Failed to load transactions'
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
 
   async function transfer(fromIban: string, toIban: string, amount: number) {
-    try{
+    try {
       const { data } = await api.post('/api/transactions/transaction', {
         fromIban, toIban, amount
       })
@@ -61,5 +91,5 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   }
 
-  return { transactions, loading, error, fetchMyTransactions, fetchAllTransactions, transfer, fetchTransactionsByAccount }
+  return { transactions, loading, error, fetchMyTransactions, fetchAllTransactions, transfer, fetchTransactionsByAccount, fetchTransactions, fetchTest }
 })

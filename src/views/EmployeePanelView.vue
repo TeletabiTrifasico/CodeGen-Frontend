@@ -416,7 +416,7 @@ async function loadTransferTab() {
 
 async function loadAllTransactions() {
   tab.value = 'transactions'
-  await txStore.fetchAllTransactions()
+  await txStore.fetchTransactions()
 }
 
 async function handleApprove(userId: number) {
@@ -464,7 +464,7 @@ async function handleEmployeeTransfer() {
     selectedToIban.value = ''
     transferAmount.value = 0
 
-    await Promise.all([accountStore.fetchAllAccounts(), txStore.fetchAllTransactions()])
+    await Promise.all([accountStore.fetchAllAccounts(), txStore.fetchTransactions()])
   } catch (e: any) {
     transferError.value = e.response?.data?.error ?? 'Transfer failed'
   } finally {
@@ -507,7 +507,7 @@ async function saveEditLimits() {
   try {
     await accountStore.updateAccount(editingAccount.value.iban, payload)
     editSuccess.value = 'Limits updated successfully'
-    await Promise.all([accountStore.fetchAllAccounts(), txStore.fetchAllTransactions()])
+    await Promise.all([accountStore.fetchAllAccounts(), txStore.fetchTransactions()])
   } catch (e: any) {
     editError.value = e.response?.data?.error ?? 'Failed to update limits'
   } finally {
