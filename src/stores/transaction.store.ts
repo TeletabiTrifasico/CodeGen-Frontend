@@ -8,76 +8,36 @@ export const useTransactionStore = defineStore('transaction', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  async function fetchMyTransactions() {
+  const currentPage = ref(0)      // Spring pages are 0-indexed
+  const totalPages = ref(1)
+  const totalElements = ref(0)
+
+  async function fetchTransactions(iban?: string, page = 0) {
     loading.value = true
     error.value = null
+
     try {
-      const { data } = await api.get('/api/transactions')
-      transactions.value = data
+      const params = {
+        ...(iban ? { iban } : {}),
+        page, 
+      }
+
+      const response = await api.get('/api/transactions', { params })
+      const data = response.data
+
+      transactions.value = data.content
+      currentPage.value = data.pageable.pageNumber
+      totalPages.value = data.totalPages
+      totalElements.value = data.totalElements
+
+      return data
     } catch (e: any) {
       error.value = e.response?.data?.error ?? 'Failed to load transactions'
+      return null
     } finally {
       loading.value = false
     }
   }
-
-  async function fetchAllTransactions() {
-    loading.value = true
-    error.value = null
-    try {
-      const { data } = await api.get('/api/transactions/all')
-      transactions.value = data
-    } catch (e: any) {
-      error.value = e.response?.data?.error ?? 'Failed to load transactions'
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchTransactionsByAccount(iban: string) {
-    loading.value = true
-    error.value = null
-    try {
-      const { data } = await api.get(`/api/transactions/account/${iban}`)
-      return data as Transaction[]
-    } catch (e: any) {
-      error.value = e.response?.data?.error ?? 'Failed to load account transactions'
-      return []
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchTransactions(iban?: string) {
-    loading.value = true
-    error.value = null
-    try {
-      const params = iban ? { iban } : {}
-      const { data } = await api.get('/api/transactions/newGetApi', { params })
-      transactions.value = data
-      return data as Transaction[]
-    } catch (e: any) {
-      error.value = e.response?.data?.error ?? 'Failed to load transactions'
-      return []
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchTest() {
-    loading.value = true
-    error.value = null
-    try {
-      const { data } = await api.get('/api/transactions/testAPI')
-      return data as Transaction[]
-    } catch (e: any) {
-      error.value = e.response?.data?.error ?? 'Failed to load transactions'
-      return []
-    } finally {
-      loading.value = false
-    }
-  }
-
 
   async function transfer(fromIban: string, toIban: string, amount: number) {
     try {
@@ -91,5 +51,5 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   }
 
-  return { transactions, loading, error, fetchMyTransactions, fetchAllTransactions, transfer, fetchTransactionsByAccount, fetchTransactions, fetchTest }
+  return { transactions, loading, error, currentPage, totalPages, totalElements, transfer, fetchTransactions }
 })
