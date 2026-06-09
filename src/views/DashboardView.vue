@@ -16,7 +16,7 @@
     <div v-else class="row g-3 mb-4">
       <div v-for="account in accountStore.accounts" :key="account.id" class="col-sm-6 col-lg-4">
         <div class="card h-100 border-0 shadow-sm account-card"
-             :class="account.accountType === 'CHECKING' ? 'account-checking' : 'account-savings'">
+          :class="account.accountType === 'CHECKING' ? 'account-checking' : 'account-savings'">
           <div class="card-body text-white">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <span class="badge bg-white bg-opacity-25 text-white fw-normal">{{ account.accountType }}</span>
@@ -63,8 +63,8 @@
             </div>
             <div class="col-md-4">
               <label class="form-label fw-semibold">Amount (€)</label>
-              <input v-model.number="transferForm.amount" type="number" step="0.01" min="0.01"
-                     class="form-control" placeholder="0.00" required />
+              <input v-model.number="transferForm.amount" type="number" step="0.01" min="0.01" class="form-control"
+                placeholder="0.00" required />
             </div>
           </div>
 
@@ -72,14 +72,12 @@
           <div class="mb-3">
             <label class="form-label fw-semibold">To</label>
             <div class="d-flex gap-2 mb-2">
-              <button type="button"
-                      class="btn btn-sm"
-                      :class="toMode === 'own' ? 'btn-primary' : 'btn-outline-secondary'"
-                      @click="setToMode('own')">My Account</button>
-              <button type="button"
-                      class="btn btn-sm"
-                      :class="toMode === 'external' ? 'btn-primary' : 'btn-outline-secondary'"
-                      @click="setToMode('external')">Other Customer</button>
+              <button type="button" class="btn btn-sm"
+                :class="toMode === 'own' ? 'btn-primary' : 'btn-outline-secondary'" @click="setToMode('own')">My
+                Account</button>
+              <button type="button" class="btn btn-sm"
+                :class="toMode === 'external' ? 'btn-primary' : 'btn-outline-secondary'"
+                @click="setToMode('external')">Other Customer</button>
             </div>
 
             <!-- Own account dropdown -->
@@ -95,30 +93,29 @@
 
             <!-- External: IBAN + inline name search -->
             <div v-else>
-              <input v-model="transferForm.toIban" class="form-control mb-2"
-                     placeholder="Enter IBAN (e.g. NL02BANK…)" required />
+              <input v-model="transferForm.toIban" class="form-control mb-2" placeholder="Enter IBAN (e.g. NL02BANK…)"
+                required />
 
               <!-- Inline search toggle -->
               <div>
                 <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none"
-                        @click="searchOpen = !searchOpen">
+                  @click="searchOpen = !searchOpen">
                   {{ searchOpen ? '▲ Hide' : '▼ Search customer by name' }}
                 </button>
               </div>
               <div v-if="searchOpen" class="mt-2 p-3 bg-light rounded">
                 <div class="input-group input-group-sm">
-                  <input v-model="ibanSearchName" class="form-control"
-                         placeholder="First or last name…"
-                         @keyup.enter="handleIbanSearch" />
-                  <button class="btn btn-outline-secondary" type="button"
-                          @click="handleIbanSearch" :disabled="ibanSearchLoading || !ibanSearchName.trim()">
+                  <input v-model="ibanSearchName" class="form-control" placeholder="First or last name…"
+                    @keyup.enter="handleIbanSearch" />
+                  <button class="btn btn-outline-secondary" type="button" @click="handleIbanSearch"
+                    :disabled="ibanSearchLoading || !ibanSearchName.trim()">
                     <span v-if="ibanSearchLoading" class="spinner-border spinner-border-sm"></span>
                     <span v-else>Search</span>
                   </button>
                 </div>
                 <div v-if="ibanSearchResults.length > 0" class="mt-2">
                   <div v-for="r in ibanSearchResults" :key="r.iban"
-                       class="d-flex align-items-center justify-content-between p-2 bg-white rounded mb-1 border">
+                    class="d-flex align-items-center justify-content-between p-2 bg-white rounded mb-1 border">
                     <div>
                       <span class="fw-semibold">{{ r.ownerFullName }}</span>
                       <span class="badge ms-2" :class="r.accountType === 'CHECKING' ? 'bg-primary' : 'bg-success'">
@@ -127,7 +124,7 @@
                       <div style="font-size: .8rem;" class="text-muted"><code>{{ r.iban }}</code></div>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-primary"
-                            @click="transferForm.toIban = r.iban; searchOpen = false">Use</button>
+                      @click="transferForm.toIban = r.iban; searchOpen = false">Use</button>
                   </div>
                 </div>
                 <div v-else-if="ibanSearchDone" class="mt-2 text-muted small">No accounts found.</div>
@@ -144,45 +141,7 @@
     </div>
 
     <!-- ── Transaction History ─────────────────────────────── -->
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-white border-bottom py-3">
-        <h5 class="mb-0">Transaction History</h5>
-      </div>
-      <div class="card-body p-0">
-        <div v-if="txStore.loading" class="text-center p-4">
-          <div class="spinner-border text-primary"></div>
-        </div>
-        <div v-else-if="txStore.transactions.length === 0" class="text-center p-4 text-muted">
-          No transactions yet.
-        </div>
-        <div v-else class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Reference</th>
-                <th>Type</th>
-                <th>From</th>
-                <th>To</th>
-                <th class="text-end">Amount</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="tx in txStore.transactions" :key="tx.id">
-                <td><code class="text-muted small">{{ tx.reference }}</code></td>
-                <td><span class="badge" :class="txBadge(tx.type)">{{ txLabel(tx.type) }}</span></td>
-                <td class="text-muted small">{{ tx.sourceIban ?? '—' }}</td>
-                <td class="text-muted small">{{ tx.destinationIban ?? '—' }}</td>
-                <td class="text-end fw-semibold" :class="txAmountClass(tx)">
-                  {{ txAmountClass(tx).includes('danger') ? '−' : '+' }} €{{ tx.amount.toFixed(2) }}
-                </td>
-                <td class="text-muted small">{{ formatDate(tx.timestamp) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <TransactionHistory />
 
     <!-- ── Create Account Modal ───────────────────────────── -->
     <div v-if="showCreateAccount" class="modal d-block" style="background: rgba(0,0,0,0.45);">
@@ -197,11 +156,13 @@
             <label class="form-label fw-semibold">Account Type</label>
             <div class="d-flex gap-3">
               <div class="form-check">
-                <input class="form-check-input" type="radio" value="CHECKING" id="typeChecking" v-model="newAccountType" />
+                <input class="form-check-input" type="radio" value="CHECKING" id="typeChecking"
+                  v-model="newAccountType" />
                 <label class="form-check-label" for="typeChecking">Checking</label>
               </div>
               <div class="form-check">
-                <input class="form-check-input" type="radio" value="SAVINGS" id="typeSavings" v-model="newAccountType" />
+                <input class="form-check-input" type="radio" value="SAVINGS" id="typeSavings"
+                  v-model="newAccountType" />
                 <label class="form-check-label" for="typeSavings">Savings</label>
               </div>
             </div>
@@ -222,7 +183,7 @@
       <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
           <div class="modal-header border-bottom"
-               :class="detailAccount.accountType === 'CHECKING' ? 'account-checking' : 'account-savings'">
+            :class="detailAccount.accountType === 'CHECKING' ? 'account-checking' : 'account-savings'">
             <div class="text-white">
               <span class="badge bg-white bg-opacity-25 me-2">{{ detailAccount.accountType }}</span>
               <span class="fw-semibold">{{ detailAccount.iban }}</span>
@@ -259,45 +220,13 @@
             </div>
             <div class="mb-4 d-flex gap-3 small text-muted">
               <span>Status: <strong :class="detailAccount.active ? 'text-success' : 'text-danger'">
-                {{ detailAccount.active ? 'Active' : 'Inactive' }}</strong></span>
+                  {{ detailAccount.active ? 'Active' : 'Inactive' }}</strong></span>
               <span>Opened: {{ detailAccount.createdAt ? formatDate(detailAccount.createdAt) : '—' }}</span>
             </div>
 
             <!-- Account transactions -->
-            <h6 class="mb-3">Transactions on this account</h6>
-            <div v-if="detailTxLoading" class="text-center py-3">
-              <div class="spinner-border text-primary"></div>
-            </div>
-            <div v-else-if="detailTransactions.length === 0" class="text-muted text-center py-3">
-              No transactions yet.
-            </div>
-            <div v-else class="table-responsive">
-              <table class="table table-sm table-hover align-middle mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th>Reference</th>
-                    <th>Type</th>
-                    <th>From</th>
-                    <th>To</th>
-                    <th class="text-end">Amount</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="tx in detailTransactions" :key="tx.id">
-                    <td><code class="text-muted small">{{ tx.reference }}</code></td>
-                    <td><span class="badge" :class="txBadge(tx.type)">{{ txLabel(tx.type) }}</span></td>
-                    <td class="text-muted small">{{ tx.sourceIban ?? '—' }}</td>
-                    <td class="text-muted small">{{ tx.destinationIban ?? '—' }}</td>
-                    <td class="text-end fw-semibold" :class="txAmountClassForAccount(tx, detailAccount!.iban)">
-                      {{ txAmountClassForAccount(tx, detailAccount!.iban).includes('danger') ? '−' : '+' }}
-                      €{{ tx.amount.toFixed(2) }}
-                    </td>
-                    <td class="text-muted small">{{ formatDate(tx.timestamp) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <AccountTransactions :iban="detailAccount.iban" />
+
           </div>
           <div class="modal-footer border-top">
             <button class="btn btn-light" @click="closeDetails">Close</button>
@@ -313,8 +242,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { useAccountStore } from '@/stores/account.store'
 import { useTransactionStore } from '@/stores/transaction.store'
-import type { Account, AccountType, IbanSearchResult, Transaction, TransactionType } from '@/models'
-import api from '@/services/api'
+import type { Account, AccountType, IbanSearchResult, Transaction } from '@/models'
+import TransactionHistory from '@/components/transactions/UserDashboard.vue'
+import AccountTransactions from '@/components/transactions/AccountTransactions.vue'
 
 const authStore = useAuthStore()
 const accountStore = useAccountStore()
@@ -356,7 +286,7 @@ const ibanSearchDone = ref(false)
 
 onMounted(async () => {
   await accountStore.fetchMyAccounts()
-  await txStore.fetchMyTransactions()
+  await txStore.fetchTransactions()
 })
 
 function pickSourceAccount(account: Account) {
@@ -372,8 +302,7 @@ async function openDetails(account: Account) {
   detailTransactions.value = []
   detailTxLoading.value = true
   try {
-    const { data } = await api.get(`/api/transactions/account/${account.iban}`)
-    detailTransactions.value = data
+    detailTransactions.value = await txStore.fetchTransactions(account.iban)
   } catch {
     detailTransactions.value = []
   } finally {
@@ -400,7 +329,7 @@ async function handleTransfer() {
     transferForm.value = { fromIban: '', toIban: '', amount: 0 }
     toMode.value = 'external'
     await accountStore.fetchMyAccounts()
-    await txStore.fetchMyTransactions()
+    await txStore.fetchTransactions()
   } catch (e: any) {
     transferError.value = e.response?.data?.error ?? 'Transfer failed'
   } finally {
@@ -435,40 +364,26 @@ async function handleIbanSearch() {
   }
 }
 
-function txBadge(type: TransactionType) {
-  return {
-    'bg-primary bg-opacity-75': type === 'TRANSFER',
-    'bg-success': type === 'ATM_DEPOSIT',
-    'bg-warning text-dark': type === 'ATM_WITHDRAWAL'
-  }
-}
-
-function txLabel(type: TransactionType) {
-  return { TRANSFER: 'Transfer', ATM_DEPOSIT: 'Deposit', ATM_WITHDRAWAL: 'Withdrawal' }[type]
-}
-
-function txAmountClass(tx: Transaction) {
-  if (tx.type === 'ATM_DEPOSIT') return 'text-success'
-  if (tx.type === 'ATM_WITHDRAWAL') return 'text-danger'
-  return tx.sourceIban && accountStore.accounts.some(a => a.iban === tx.sourceIban)
-    ? 'text-danger'
-    : 'text-success'
-}
-
-function txAmountClassForAccount(tx: Transaction, iban: string) {
-  if (tx.type === 'ATM_DEPOSIT') return 'text-success'
-  if (tx.type === 'ATM_WITHDRAWAL') return 'text-danger'
-  return tx.sourceIban === iban ? 'text-danger' : 'text-success'
-}
-
 function formatDate(ts: string) {
   return new Date(ts).toLocaleString('nl-NL')
 }
 </script>
 
 <style scoped>
-.account-card { border-radius: 1rem; transition: transform .15s; }
-.account-card:hover { transform: translateY(-2px); }
-.account-checking { background: linear-gradient(135deg, #2563eb, #1e40af); }
-.account-savings  { background: linear-gradient(135deg, #059669, #065f46); }
+.account-card {
+  border-radius: 1rem;
+  transition: transform .15s;
+}
+
+.account-card:hover {
+  transform: translateY(-2px);
+}
+
+.account-checking {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+}
+
+.account-savings {
+  background: linear-gradient(135deg, #059669, #065f46);
+}
 </style>
