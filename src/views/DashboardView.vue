@@ -144,45 +144,7 @@
     </div>
 
     <!-- ── Transaction History ─────────────────────────────── -->
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-white border-bottom py-3">
-        <h5 class="mb-0">Transaction History</h5>
-      </div>
-      <div class="card-body p-0">
-        <div v-if="txStore.loading" class="text-center p-4">
-          <div class="spinner-border text-primary"></div>
-        </div>
-        <div v-else-if="txStore.transactions.length === 0" class="text-center p-4 text-muted">
-          No transactions yet.
-        </div>
-        <div v-else class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Reference</th>
-                <th>Type</th>
-                <th>From</th>
-                <th>To</th>
-                <th class="text-end">Amount</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="tx in txStore.transactions" :key="tx.id">
-                <td><code class="text-muted small">{{ tx.reference }}</code></td>
-                <td><span class="badge" :class="txBadge(tx.type)">{{ txLabel(tx.type) }}</span></td>
-                <td class="text-muted small">{{ tx.sourceIban ?? '—' }}</td>
-                <td class="text-muted small">{{ tx.destinationIban ?? '—' }}</td>
-                <td class="text-end fw-semibold" :class="txAmountClass(tx)">
-                  {{ txAmountClass(tx).includes('danger') ? '−' : '+' }} €{{ tx.amount.toFixed(2) }}
-                </td>
-                <td class="text-muted small">{{ formatDate(tx.timestamp) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <TransactionHistory />
 
     <!-- ── Create Account Modal ───────────────────────────── -->
     <div v-if="showCreateAccount" class="modal d-block" style="background: rgba(0,0,0,0.45);">
@@ -314,7 +276,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useAccountStore } from '@/stores/account.store'
 import { useTransactionStore } from '@/stores/transaction.store'
 import type { Account, AccountType, IbanSearchResult, Transaction, TransactionType } from '@/models'
-import api from '@/services/api'
+import TransactionHistory from '@/components/transactions/UserDashboard.vue'
 
 const authStore = useAuthStore()
 const accountStore = useAccountStore()
@@ -444,14 +406,6 @@ function txBadge(type: TransactionType) {
 
 function txLabel(type: TransactionType) {
   return { TRANSFER: 'Transfer', ATM_DEPOSIT: 'Deposit', ATM_WITHDRAWAL: 'Withdrawal' }[type]
-}
-
-function txAmountClass(tx: Transaction) {
-  if (tx.type === 'ATM_DEPOSIT') return 'text-success'
-  if (tx.type === 'ATM_WITHDRAWAL') return 'text-danger'
-  return tx.sourceIban && accountStore.accounts.some(a => a.iban === tx.sourceIban)
-    ? 'text-danger'
-    : 'text-success'
 }
 
 function txAmountClassForAccount(tx: Transaction, iban: string) {
