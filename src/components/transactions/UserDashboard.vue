@@ -1,11 +1,30 @@
 <script setup lang="ts">
-import { reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useTransactionStore } from '@/stores/transaction.store'
 import { useAccountStore } from '@/stores/account.store'
 import type { Transaction, TransactionType } from '@/models'
 
 const txStore = useTransactionStore()
 const accountStore = useAccountStore()
+
+const transactions  = ref<Transaction[]>([])
+const loading       = ref(false)
+const currentPage   = ref(0)
+const totalPages    = ref(1)
+
+async function fetchPage(page = 0) {
+  loading.value = true
+  try {
+    const data = await txStore.fetchTransactions('', page)  // empty = all accounts
+    transactions.value = data?.content     ?? []
+    currentPage.value  = data?.pageable?.pageNumber ?? 0
+    totalPages.value   = data?.totalPages  ?? 1
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => fetchPage(0))
 
 // Helpers
 function txBadge(type: TransactionType) {
@@ -42,7 +61,7 @@ const filters = reactive({
 })
 
 const filteredTransactions = computed(() =>
-  txStore.transactions.filter(tx => {
+  transactions.value.filter(tx => {
     if (filters.iban) {
       const q = filters.iban.toLowerCase()
       if (
@@ -86,16 +105,14 @@ function clearFilters() {
 
 // Pagination
 const pageRange = computed(() => {
-  const total = txStore.totalPages
-  const current = txStore.currentPage
-  const start = Math.max(0, current - 2)
-  const end = Math.min(total - 1, current + 2)
+  const start = Math.max(0, currentPage.value - 2)
+  const end   = Math.min(totalPages.value - 1, currentPage.value + 2)
   return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 })
 
 function goToPage(page: number) {
-  if (page < 0 || page >= txStore.totalPages) return
-  txStore.fetchTransactions("", page)
+  if (page < 0 || page >= totalPages.value) return
+  fetchPage(page)
 }
 </script>
 
@@ -163,7 +180,7 @@ function goToPage(page: number) {
       </div>
 
       <!-- Loading -->
-      <div v-if="txStore.loading" class="text-center p-4">
+      <div v-if="loading" class="text-center p-4">
         <div class="spinner-border text-primary"></div>
       </div>
 
@@ -201,15 +218,15 @@ function goToPage(page: number) {
       </div>
 
       <!-- Pagination -->
-      <nav v-if="!txStore.loading && filteredTransactions.length > 0"
+      <nav v-if="!loading && filteredTransactions.length > 0"
         class="d-flex justify-content-between align-items-center mt-3">
         <small class="text-muted">
-          Page {{ txStore.currentPage + 1 }} of {{ txStore.totalPages }}
+          Page {{ currentPage + 1 }} of {{ totalPages }}
           &mdash; {{ filteredTransactions.length }} shown
         </small>
         <ul class="pagination pagination-sm mb-0">
-          <li class="page-item" :class="{ disabled: txStore.currentPage === 0 }">
-            <button class="page-link" @click="goToPage(txStore.currentPage - 1)">&laquo;</button>
+          <li class="page-item" :class="{ disabled: currentPage === 0 }">
+            <button class="page-link" @click="goToPage(currentPage - 1)">&laquo;</button>
           </li>
           <li v-for="p in pageRange" :key="p" class="page-item" :class="{ active: p === txStore.currentPage }">
             <button class="page-link" @click="goToPage(p)">{{ p + 1 }}</button>
