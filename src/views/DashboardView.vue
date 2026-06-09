@@ -350,7 +350,7 @@ async function handleCreateAccount() {
     createLoading.value = false
   }
 }
-
+// search for IBANs by customer name
 async function handleIbanSearch() {
   if (!ibanSearchName.value.trim()) return
   ibanSearchLoading.value = true
