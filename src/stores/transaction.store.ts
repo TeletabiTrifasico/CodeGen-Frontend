@@ -41,7 +41,7 @@ export const useTransactionStore = defineStore('transaction', () => {
 
   async function transfer(fromIban: string, toIban: string, amount: number) {
     try {
-      const { data } = await api.post('/api/transactions/transaction', {
+      const { data } = await api.post('/api/transactions', {
         fromIban, toIban, amount
       })
       return data as Transaction
